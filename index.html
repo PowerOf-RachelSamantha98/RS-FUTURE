@@ -187,8 +187,15 @@
                             <p id="hudWinRate" class="text-base font-bold text-indigo-400 mono">14.2%</p>
                         </div>
                         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
-                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Last Live Price</p>
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Last Live Price</p>
+                                <button id="btnEditPrice" title="Sinkronkan manual sesuai angka di chart" class="text-slate-500 hover:text-indigo-400 transition-all -mt-1">
+                                    <span class="material-icons-round text-[13px] leading-none">edit</span>
+                                </button>
+                            </div>
                             <p id="hudLivePrice" class="text-base font-bold text-slate-200 mono">Connecting...</p>
+                            <input id="hudLivePriceInput" type="number" step="any" class="hidden w-full bg-slate-900 border border-indigo-500 rounded px-2 py-1 text-sm text-slate-100 mono focus:outline-none" />
+                            <p id="hudPriceSourceTag" class="text-[9px] text-slate-600 mt-0.5 truncate"></p>
                         </div>
                     </div>
 
@@ -397,19 +404,22 @@
         };
 
         const basePrices = {
-            'BINANCE:BTCUSDT': 91420.00,
-            'BINANCE:ETHUSDT': 3150.25,
-            'BINANCE:SOLUSDT': 185.60,
-            'BINANCE:BNBUSDT': 620.40,
+            'BINANCE:BTCUSDT': 61700.00,
+            'BINANCE:ETHUSDT': 1700.00,
+            'BINANCE:SOLUSDT': 130.00,
+            'BINANCE:BNBUSDT': 560.00,
             'FX:EURUSD': 1.0845,
             'FX:GBPUSD': 1.2740,
             'FX:USDJPY': 155.35,
-            'OANDA:XAUUSD': 2645.50,
-            'OANDA:XAGUSD': 31.15,
-            'TVC:USOIL': 72.80,
-            'CME:ES1!': 5850.00,
-            'CME:NQ1!': 20600.00
+            'OANDA:XAUUSD': 4130.00,
+            'OANDA:XAGUSD': 62.00,
+            'TVC:USOIL': 65.00,
+            'CME:ES1!': 6150.00,
+            'CME:NQ1!': 22000.00
         };
+        // Catatan: nilai-nilai di atas hanyalah TITIK AWAL/CADANGAN saat API live gagal diakses.
+        // Untuk Crypto & Forex, harga akan otomatis ditimpa oleh hasil fetch live (Binance/Frankfurter).
+        // Untuk Commodity/Futures, gunakan ikon edit ✏️ di kartu "Last Live Price" agar selalu presisi.
 
         const state = {
             market: 'CRYPTO',
@@ -421,6 +431,7 @@
             activeStage: 1,
             isAnalysing: false,
             currentPrice: 91420.00,
+            manualPriceLock: false,
             tvWidget: null
         };
 
@@ -437,6 +448,9 @@
         const hudBias = document.getElementById('hudBias');
         const hudWinRate = document.getElementById('hudWinRate');
         const hudLivePrice = document.getElementById('hudLivePrice');
+        const hudLivePriceInput = document.getElementById('hudLivePriceInput');
+        const hudPriceSourceTag = document.getElementById('hudPriceSourceTag');
+        const btnEditPrice = document.getElementById('btnEditPrice');
 
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
@@ -496,8 +510,9 @@
                 assetSelect.appendChild(opt);
             });
             state.asset = assets[0].value;
+            state.manualPriceLock = false;
             hudAsset.textContent = state.asset.split(':')[1] || state.asset;
-            fetchLivePrice(true);
+            fetchLivePrice(true, true);
             initTradingView();
             resetSimulationData();
         }
@@ -537,12 +552,15 @@
 
         function setLivePriceUI(price, sourceLabel) {
             hudLivePrice.textContent = formatPrice(price);
-            hudLivePrice.title = sourceLabel;
+            hudPriceSourceTag.textContent = sourceLabel;
         }
 
-        async function fetchLivePrice(showLoadingState = false) {
+        async function fetchLivePrice(showLoadingState = false, forceOverrideManual = false) {
             const symbol = state.asset;
             if (!symbol) return;
+            // Jika pengguna sedang mengunci harga secara manual (hasil sinkron dari chart),
+            // jangan ditimpa oleh auto-refresh, kecuali memang diminta paksa (mis. ganti aset).
+            if (state.manualPriceLock && !forceOverrideManual) return;
             if (showLoadingState) hudLivePrice.textContent = 'Syncing...';
             priceFetchInFlight = true;
 
@@ -556,7 +574,7 @@
                     const price = parseFloat(data.price);
                     if (isNaN(price)) throw new Error('Invalid price payload');
                     state.currentPrice = price;
-                    setLivePriceUI(price, 'Live dari Binance');
+                    setLivePriceUI(price, 'Live • Binance');
                 } else if (state.market === 'FOREX') {
                     // Frankfurter API (gratis, tanpa API key)
                     const pair = symbol.split(':')[1]; // contoh: EURUSD
@@ -568,23 +586,62 @@
                     const price = data.rates ? data.rates[quote] : undefined;
                     if (price === undefined) throw new Error('Invalid FX payload');
                     state.currentPrice = price;
-                    setLivePriceUI(price, 'Live dari Frankfurter FX');
+                    setLivePriceUI(price, 'Live • Frankfurter FX');
+                } else if (symbol === 'OANDA:XAUUSD' || symbol === 'OANDA:XAGUSD') {
+                    // gold-api.com: sumber gratis tanpa API key untuk logam mulia
+                    const metal = symbol.includes('XAU') ? 'XAU' : 'XAG';
+                    const res = await fetch(`https://api.gold-api.com/price/${metal}`);
+                    if (!res.ok) throw new Error('gold-api fetch failed');
+                    const data = await res.json();
+                    const price = parseFloat(data.price);
+                    if (isNaN(price)) throw new Error('Invalid metal payload');
+                    state.currentPrice = price;
+                    setLivePriceUI(price, 'Live • gold-api.com');
                 } else {
-                    // Commodity & Index Futures: belum ada sumber gratis tanpa API key yang reliable,
-                    // jadi gunakan harga referensi manual dan beri label yang jujur (bukan "live").
+                    // Belum ada sumber gratis tanpa API key yang reliable untuk simbol ini
+                    // (mis. minyak/futures index) -> pakai harga referensi manual, beri label jujur.
                     const price = basePrices[symbol];
                     state.currentPrice = price;
-                    setLivePriceUI(price, 'Harga referensi manual (bukan live)');
+                    setLivePriceUI(price, 'Referensi manual — klik ikon edit untuk sinkron dari chart');
                 }
             } catch (err) {
-                // Gagal fetch (mis. offline) -> fallback ke harga referensi terakhir, jangan diam-diam salah
+                // Gagal fetch (mis. offline / endpoint berubah) -> fallback ke harga referensi terakhir
                 const fallback = basePrices[symbol] ?? state.currentPrice;
                 state.currentPrice = fallback;
-                setLivePriceUI(fallback, 'Gagal sinkron, memakai harga referensi terakhir');
+                setLivePriceUI(fallback, 'Gagal sinkron — klik ikon edit untuk isi manual dari chart');
             } finally {
                 priceFetchInFlight = false;
             }
         }
+
+        // Manual price sync: memungkinkan pengguna mengetik langsung angka yang
+        // terlihat di chart TradingView untuk aset apa pun (termasuk yang tidak
+        // punya sumber API gratis, seperti index futures).
+        function enterManualPriceEdit() {
+            hudLivePriceInput.value = state.currentPrice ?? '';
+            hudLivePrice.classList.add('hidden');
+            hudLivePriceInput.classList.remove('hidden');
+            hudLivePriceInput.focus();
+            hudLivePriceInput.select();
+        }
+
+        function commitManualPriceEdit() {
+            const val = parseFloat(hudLivePriceInput.value);
+            hudLivePriceInput.classList.add('hidden');
+            hudLivePrice.classList.remove('hidden');
+            if (!isNaN(val) && val > 0) {
+                state.currentPrice = val;
+                state.manualPriceLock = true;
+                setLivePriceUI(val, 'Manual • disinkron dari chart Anda');
+            }
+        }
+
+        btnEditPrice.addEventListener('click', enterManualPriceEdit);
+        hudLivePriceInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') commitManualPriceEdit();
+            if (e.key === 'Escape') { hudLivePriceInput.classList.add('hidden'); hudLivePrice.classList.remove('hidden'); }
+        });
+        hudLivePriceInput.addEventListener('blur', commitManualPriceEdit);
 
         // Win Rate Calculator based on RR
         function calculateWinRate(rr) {
@@ -600,8 +657,9 @@
 
         assetSelect.addEventListener('change', (e) => {
             state.asset = e.target.value;
+            state.manualPriceLock = false;
             hudAsset.textContent = state.asset.split(':')[1] || state.asset;
-            fetchLivePrice(true);
+            fetchLivePrice(true, true);
             initTradingView();
             resetSimulationData();
         });
