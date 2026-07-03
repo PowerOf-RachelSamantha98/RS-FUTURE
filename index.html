@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Pipeline Generator & Simulator</title>
+    <title>Trading Pipeline Generator & Simulator (TradingView Sync)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- TradingView Widget Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -45,12 +47,12 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-tight">Perpetual Sniper Pipeline</h1>
-                <p class="text-xs text-slate-400">AI Code Generator & Live Simulator</p>
+                <p class="text-xs text-slate-400 font-medium">Real-Time TradingView Sync & AI Live Price Analyzer</p>
             </div>
         </div>
         <div class="flex items-center space-x-4">
             <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Ready to Deploy
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> TV Connected
             </span>
         </div>
     </header>
@@ -64,17 +66,22 @@
                 <div>
                     <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Pipeline Parameters</h2>
                     
-                    <!-- Parameter 1: Expanded Asset List -->
+                    <!-- Parameter 1: Expanded Perpetual Asset List -->
                     <div class="mb-4">
                         <label class="block text-xs font-medium text-slate-400 mb-1.5">1. Target Asset Pair (Perpetual)</label>
                         <select id="assetSelect" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="BTC/USDT">BTC/USDT (Bitcoin)</option>
                             <option value="ETH/USDT">ETH/USDT (Ethereum)</option>
                             <option value="SOL/USDT">SOL/USDT (Solana)</option>
-                            <option value="BNB/USDT">BNB/USDT (BNB Chain)</option>
+                            <option value="BNB/USDT">BNB/USDT (Binance Coin)</option>
                             <option value="XRP/USDT">XRP/USDT (Ripple)</option>
                             <option value="DOGE/USDT">DOGE/USDT (Dogecoin)</option>
                             <option value="NEAR/USDT">NEAR/USDT (Near Protocol)</option>
+                            <option value="ADA/USDT">ADA/USDT (Cardano)</option>
+                            <option value="AVAX/USDT">AVAX/USDT (Avalanche)</option>
+                            <option value="SUI/USDT">SUI/USDT (Sui Network)</option>
+                            <option value="LINK/USDT">LINK/USDT (Chainlink)</option>
+                            <option value="WIF/USDT">WIF/USDT (dogwifhat)</option>
                         </select>
                     </div>
 
@@ -173,8 +180,8 @@
                             <p id="hudWinRate" class="text-base font-bold text-indigo-400 mono">14.2%</p>
                         </div>
                         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
-                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Pipeline Status</p>
-                            <p id="hudStatus" class="text-base font-bold text-slate-400">Waiting for trigger...</p>
+                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Last Live Price</p>
+                            <p id="hudLivePrice" class="text-base font-bold text-slate-200 mono">Connecting...</p>
                         </div>
                     </div>
 
@@ -198,15 +205,40 @@
                     <!-- Main Workspace Area: Split with Analysis Report Card -->
                     <div class="flex-1 flex gap-4 overflow-hidden">
                         
-                        <!-- Canvas Box (Left Side) -->
-                        <div class="flex-1 bg-slate-950 rounded-2xl border border-slate-800/60 overflow-hidden relative">
-                            <canvas id="simCanvas" class="w-full h-full block"></canvas>
-                            <!-- Controls Overlay -->
-                            <div class="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3 backdrop-blur-sm">
-                                <button id="btnPlayPause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all">
-                                    <span class="material-icons-round text-lg">pause</span>
-                                </button>
-                                <span class="text-xs text-slate-400">Auto-cycle Simulation</span>
+                        <!-- Chart/Canvas Box (Left Side) -->
+                        <div class="flex-1 bg-slate-950 rounded-2xl border border-slate-800/60 overflow-hidden relative flex flex-col">
+                            <!-- Toggle Button antara TradingView dan Engine Sim -->
+                            <div class="bg-slate-950 border-b border-slate-800 px-4 py-2 shrink-0 flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                                    <span class="material-icons-round text-sm">show_chart</span> Workspace Monitor
+                                </span>
+                                <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+                                    <button id="viewTV" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all bg-indigo-600 text-white">
+                                        TradingView Live
+                                    </button>
+                                    <button id="viewSim" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all text-slate-400 hover:text-slate-200">
+                                        Pipeline Engine
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Container Dynamic -->
+                            <div class="flex-1 relative">
+                                <!-- 1. TradingView Widget Container -->
+                                <div id="tvContainer" class="absolute inset-0 w-full h-full">
+                                    <div id="tradingview_widget" class="w-full h-full"></div>
+                                </div>
+                                <!-- 2. Canvas Pipeline Engine Container (Hidden by default) -->
+                                <div id="canvasContainer" class="absolute inset-0 w-full h-full hidden">
+                                    <canvas id="simCanvas" class="w-full h-full block"></canvas>
+                                    <!-- Controls Overlay -->
+                                    <div class="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3 backdrop-blur-sm z-10">
+                                        <button id="btnPlayPause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all">
+                                            <span class="material-icons-round text-lg">pause</span>
+                                        </button>
+                                        <span class="text-xs text-slate-400 font-medium">Auto-cycle Simulation</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -227,10 +259,10 @@
                             </div>
 
                             <!-- Scanning Screen overlay -->
-                            <div id="scanningScreen" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-6 z-10 rounded-2xl">
+                            <div id="scanningScreen" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-6 z-20 rounded-2xl">
                                 <div class="w-12 h-12 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin mb-4"></div>
                                 <p id="scanningText" class="text-xs text-indigo-400 font-semibold mono">Menganalisa Market...</p>
-                                <p class="text-[10px] text-slate-500 mt-1">Menghitung Volume Profile & POC Nodes...</p>
+                                <p class="text-[10px] text-slate-500 mt-1" id="scanningSub">Menghubungkan ke Exchange...</p>
                             </div>
 
                             <!-- Analysis Result Screen (Populates on success) -->
@@ -347,7 +379,7 @@
 
     <!-- Scripts & Simulation Logic -->
     <script>
-        // MOCK BASE PRICE DATA FOR THE COINS
+        // MOCK BASE PRICE DATA FOR COINS (As Fallback)
         const basePrices = {
             'BTC/USDT': 91420.0,
             'ETH/USDT': 2542.50,
@@ -355,7 +387,12 @@
             'BNB/USDT': 585.30,
             'XRP/USDT': 0.5840,
             'DOGE/USDT': 0.1245,
-            'NEAR/USDT': 4.820
+            'NEAR/USDT': 4.820,
+            'ADA/USDT': 0.385,
+            'AVAX/USDT': 32.40,
+            'SUI/USDT': 1.85,
+            'LINK/USDT': 14.20,
+            'WIF/USDT': 2.35
         };
 
         const state = {
@@ -368,7 +405,8 @@
             priceHistory: [],
             entryTriggered: false,
             isAnalysing: false,
-            analysisTriggered: false
+            analysisTriggered: false,
+            currentLivePrice: 91420.0
         };
 
         // UI Selectors
@@ -381,7 +419,7 @@
         const hudAsset = document.getElementById('hudAsset');
         const hudBias = document.getElementById('hudBias');
         const hudWinRate = document.getElementById('hudWinRate');
-        const hudStatus = document.getElementById('hudStatus');
+        const hudLivePrice = document.getElementById('hudLivePrice');
 
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
@@ -392,6 +430,12 @@
         const btnGenerate = document.getElementById('btnGenerate');
         const btnCopy = document.getElementById('btnCopy');
         
+        // Workspace Toggles
+        const viewTV = document.getElementById('viewTV');
+        const viewSim = document.getElementById('viewSim');
+        const tvContainer = document.getElementById('tvContainer');
+        const canvasContainer = document.getElementById('canvasContainer');
+        
         // Selector Buttons & Panels
         const btnAnalyze = document.getElementById('btnAnalyze');
         const spinIcon = document.getElementById('spinIcon');
@@ -401,6 +445,7 @@
         const analysisEmptyState = document.getElementById('analysisEmptyState');
         const scanningScreen = document.getElementById('scanningScreen');
         const scanningText = document.getElementById('scanningText');
+        const scanningSub = document.getElementById('scanningSub');
         const analysisResults = document.getElementById('analysisResults');
         const accuracyCircle = document.getElementById('accuracyCircle');
         const accuracyText = document.getElementById('accuracyText');
@@ -420,6 +465,77 @@
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
 
+        // TradingView Initialization
+        function initTradingViewWidget(asset) {
+            // Mapping UI Asset format to Binance Perpetual Futures Symbol
+            const symbolMap = {
+                'BTC/USDT': 'BINANCE:BTCUSDT.P',
+                'ETH/USDT': 'BINANCE:ETHUSDT.P',
+                'SOL/USDT': 'BINANCE:SOLUSDT.P',
+                'BNB/USDT': 'BINANCE:BNBUSDT.P',
+                'XRP/USDT': 'BINANCE:XRPUSDT.P',
+                'DOGE/USDT': 'BINANCE:DOGEUSDT.P',
+                'NEAR/USDT': 'BINANCE:NEARUSDT.P',
+                'ADA/USDT': 'BINANCE:ADAUSDT.P',
+                'AVAX/USDT': 'BINANCE:AVAXUSDT.P',
+                'SUI/USDT': 'BINANCE:SUIUSDT.P',
+                'LINK/USDT': 'BINANCE:LINKUSDT.P',
+                'WIF/USDT': 'BINANCE:WIFUSDT.P'
+            };
+
+            const tvSymbol = symbolMap[asset] || 'BINANCE:BTCUSDT.P';
+
+            try {
+                new TradingView.widget({
+                    "width": "100%",
+                    "height": "100%",
+                    "symbol": tvSymbol,
+                    "interval": "5",
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#0f172a",
+                    "enable_publishing": false,
+                    "hide_side_toolbar": false,
+                    "allow_symbol_change": false,
+                    "container_id": "tradingview_widget"
+                });
+            } catch (err) {
+                console.error("Failed to load TradingView Widget:", err);
+                document.getElementById('tradingview_widget').innerHTML = 
+                    `<div class="p-6 text-xs text-rose-400">TradingView script could not be loaded. Please ensure you are online.</div>`;
+            }
+        }
+
+        // Fetch Live Price From Binance Public API
+        async function fetchLivePrice(asset) {
+            const apiSymbol = asset.replace('/', '');
+            try {
+                hudLivePrice.textContent = "Fetching...";
+                const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${apiSymbol}`);
+                const data = await res.json();
+                if (data && data.price) {
+                    const price = parseFloat(data.price);
+                    state.currentLivePrice = price;
+                    updateLivePriceUI(price);
+                    return price;
+                }
+            } catch (err) {
+                console.warn("Binance API fetch failed, using fallback mock price.", err);
+            }
+            // Fallback
+            const fallbackPrice = basePrices[asset] || 100.0;
+            state.currentLivePrice = fallbackPrice;
+            updateLivePriceUI(fallbackPrice);
+            return fallbackPrice;
+        }
+
+        function updateLivePriceUI(price) {
+            const dec = price < 2.0 ? 4 : (price < 1000.0 ? 2 : 1);
+            hudLivePrice.textContent = `${price.toFixed(dec)} USDT`;
+        }
+
         // Setup Responsive Canvas
         function resizeCanvas() {
             const rect = canvas.parentElement.getBoundingClientRect();
@@ -432,10 +548,28 @@
         window.addEventListener('resize', resizeCanvas);
         setTimeout(resizeCanvas, 100);
 
+        // Toggle Monitor Views
+        viewTV.addEventListener('click', () => {
+            viewTV.className = "text-xs font-semibold px-2.5 py-1 rounded-md transition-all bg-indigo-600 text-white";
+            viewSim.className = "text-xs font-semibold px-2.5 py-1 rounded-md transition-all text-slate-400 hover:text-slate-200";
+            tvContainer.classList.remove('hidden');
+            canvasContainer.classList.add('hidden');
+        });
+
+        viewSim.addEventListener('click', () => {
+            viewSim.className = "text-xs font-semibold px-2.5 py-1 rounded-md transition-all bg-indigo-600 text-white";
+            viewTV.className = "text-xs font-semibold px-2.5 py-1 rounded-md transition-all text-slate-400 hover:text-slate-200";
+            canvasContainer.classList.remove('hidden');
+            tvContainer.classList.add('hidden');
+            resizeCanvas();
+        });
+
         // UI Event Listeners
         assetSelect.addEventListener('change', (e) => {
             state.asset = e.target.value;
             hudAsset.textContent = state.asset;
+            initTradingViewWidget(state.asset);
+            fetchLivePrice(state.asset);
             resetSimulation();
             clearAnalysis();
         });
@@ -466,7 +600,7 @@
             const reqWin = (100 / (1 + state.rr)).toFixed(1);
             hudWinRate.textContent = `${reqWin}%`;
             if (state.analysisTriggered) {
-                runAnalysisProcess(true); // Quiet update of the levels
+                runAnalysisProcess(true); // Quiet update of levels
             }
         });
 
@@ -510,8 +644,8 @@
             analysedLabel.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-900 border border-slate-800 text-slate-500";
         }
 
-        // Live Analysis Scanner Engine
-        btnAnalyze.addEventListener('click', () => {
+        // Live Analysis Scanner Engine with Real-Time Fetch
+        btnAnalyze.addEventListener('click', async () => {
             if (state.isAnalysing) return;
             state.isAnalysing = true;
 
@@ -523,18 +657,24 @@
             analysisEmptyState.classList.add('hidden');
             analysisResults.classList.add('hidden');
 
+            // 1. Fetch live price first as part of data connection step
+            scanningText.textContent = "Connecting to Exchange...";
+            scanningSub.textContent = `Fetching live contract symbol for ${state.asset}...`;
+            const livePrice = await fetchLivePrice(state.asset);
+            
             // Progressive Scanning Status Labels
             const statuses = [
-                "Scanning Order Books...",
-                "Searching HTF Fair Value Gaps...",
-                "Calculating Volume POC node...",
-                "Finding Micro MSS trigger..."
+                { title: "Menganalisa Live Orderbook...", sub: `Mengkalkulasi Liquidity Heatmap pada level ${livePrice.toFixed(2)}` },
+                { title: "Mengecek Struktur SMC (FVG/OB)...", sub: `Mencari Fair Value Gap di timeframe 1 Jam` },
+                { title: "Menghitung Volume Profile (POC)...", sub: `Mendeteksi node volume transaksi tumpukan bandar` },
+                { title: "Memindai Trigger 1m MSS & CVD...", sub: "Menunggu sinyal pembalikan struktur lokal..." }
             ];
             
             let i = 0;
             const timer = setInterval(() => {
                 if (i < statuses.length) {
-                    scanningText.textContent = statuses[i];
+                    scanningText.textContent = statuses[i].title;
+                    scanningSub.textContent = statuses[i].sub;
                     i++;
                 } else {
                     clearInterval(timer);
@@ -549,19 +689,19 @@
                     runAnalysisProcess(false);
                     showToast(`Analisa Sniper untuk ${state.asset} berhasil dirumuskan!`);
                 }
-            }, 500);
+            }, 750);
         });
 
         // Calculation core
         function runAnalysisProcess(quiet = false) {
-            const basePrice = basePrices[state.asset] || 100.0;
-            const decimalPlaces = basePrice < 10 ? 4 : (basePrice < 1000 ? 2 : 1);
+            const basePrice = state.currentLivePrice;
+            const decimalPlaces = basePrice < 2.0 ? 4 : (basePrice < 1000 ? 2 : 1);
             
-            // Derive Entry inside Order Block
-            const entryVal = state.bias === 'Bullish' ? basePrice * 0.992 : basePrice * 1.008;
+            // Derive Entry inside Order Block (0.3% discount/premium)
+            const entryVal = state.bias === 'Bullish' ? basePrice * 0.997 : basePrice * 1.003;
             
-            // Stop Loss (SL) based on 0.4% distance
-            const slDistance = basePrice * 0.004;
+            // Stop Loss (SL) based on 0.5% distance
+            const slDistance = basePrice * 0.005;
             const slVal = state.bias === 'Bullish' ? entryVal - slDistance : entryVal + slDistance;
             
             // Take Profit (TP) calculated purely from Risk-to-Reward (RR) slider
@@ -696,23 +836,16 @@
             // Map Cycle Progress to Pipeline Steps
             if (cycleProgress < 0.25) {
                 state.activeStage = 1;
-                hudStatus.textContent = "SMC Structure Check...";
-                hudStatus.className = "text-base font-bold text-indigo-400";
+                hudAsset.textContent = state.asset;
                 setStepActive(step1);
             } else if (cycleProgress < 0.5) {
                 state.activeStage = 2;
-                hudStatus.textContent = "Locating POC Node...";
-                hudStatus.className = "text-base font-bold text-amber-400";
                 setStepActive(step2);
             } else if (cycleProgress < 0.75) {
                 state.activeStage = 3;
-                hudStatus.textContent = "Waiting Micro 1m MSS...";
-                hudStatus.className = "text-base font-bold text-cyan-400";
                 setStepActive(step3);
             } else {
                 state.activeStage = 4;
-                hudStatus.textContent = "CVD Sniper Triggered!";
-                hudStatus.className = "text-base font-bold text-emerald-400";
                 setStepActive(step4);
             }
 
@@ -808,6 +941,7 @@
             });
         }
 
+        // Run Sim Loop
         requestAnimationFrame(updateSimulation);
 
         // Toast Helper
@@ -837,19 +971,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sniper Trading Pipeline: ${asset}</title>
     <script src="https://cdn.tailwindcss.com"><\/script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"><\/script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #090d16; color: #e2e8f0; }
     </style>
 </head>
-<body class="p-6 md:p-12 flex flex-col items-center justify-center min-h-screen">
-    <div class="max-w-4xl w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
+<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+    <div class="max-w-5xl w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
         <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 gap-4">
             <div>
                 <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                     <span class="w-3 h-3 rounded-full bg-emerald-500"></span> ${asset} Sniper Pipeline
                 </h1>
-                <p class="text-xs text-slate-400 mt-1">SMC / Volume Profile POC / Micro Market Shift Simulator</p>
+                <p class="text-xs text-slate-400 mt-1">SMC / Volume Profile POC / Live TradingView Integration</p>
             </div>
             <div class="flex gap-4">
                 <div class="bg-slate-900 px-4 py-2 rounded-xl text-center">
@@ -867,24 +1002,53 @@
             </div>
         </div>
 
-        <!-- Simulated Interactive Chart -->
-        <div class="h-80 w-full bg-slate-900/40 rounded-2xl border border-slate-800/80 relative overflow-hidden flex items-center justify-center">
-            <div class="text-center space-y-2 p-6">
-                <div class="w-16 h-16 bg-indigo-600/10 rounded-full border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400 mb-3 animate-pulse">
-                    🚀
-                </div>
-                <h3 class="text-sm font-bold text-slate-200">Pipeline Terpasang secara Live!</h3>
-                <p class="text-xs text-slate-400 max-w-md">Indikator otomatis ini mendeteksi Fair Value Gap pada grafik utama Anda, lalu menunggu transisi volume POC sebelum mengeksekusi sniper order.</p>
-            </div>
+        <!-- Live TradingView Chart Widget -->
+        <div class="h-96 w-full bg-slate-900/40 rounded-2xl border border-slate-800/80 overflow-hidden relative">
+            <div id="tv_target_widget" class="w-full h-full"></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-medium border-t border-slate-800 pt-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium border-t border-slate-800 pt-6 text-center">
             <div class="p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/10 text-indigo-300">1. SMC Check (HTF)</div>
             <div class="p-3 bg-slate-900 rounded-xl text-slate-400">2. POC Node Match</div>
             <div class="p-3 bg-slate-900 rounded-xl text-slate-400">3. 1m Market Shift</div>
             <div class="p-3 bg-slate-900 rounded-xl text-slate-400">4. CVD Sniper Entry</div>
         </div>
     </div>
+
+    <script type="text/javascript">
+        // Self-initializing TradingView widget
+        window.onload = function() {
+            const symMap = {
+                'BTC/USDT': 'BINANCE:BTCUSDT.P',
+                'ETH/USDT': 'BINANCE:ETHUSDT.P',
+                'SOL/USDT': 'BINANCE:SOLUSDT.P',
+                'BNB/USDT': 'BINANCE:BNBUSDT.P',
+                'XRP/USDT': 'BINANCE:XRPUSDT.P',
+                'DOGE/USDT': 'BINANCE:DOGEUSDT.P',
+                'NEAR/USDT': 'BINANCE:NEARUSDT.P',
+                'ADA/USDT': 'BINANCE:ADAUSDT.P',
+                'AVAX/USDT': 'BINANCE:AVAXUSDT.P',
+                'SUI/USDT': 'BINANCE:SUIUSDT.P',
+                'LINK/USDT': 'BINANCE:LINKUSDT.P',
+                'WIF/USDT': 'BINANCE:WIFUSDT.P'
+            };
+            new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": symMap["${asset}"] || "BINANCE:BTCUSDT.P",
+                "interval": "15",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#0f172a",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tv_target_widget"
+            });
+        }
+    <\/script>
 </body>
 </html>`;
 
@@ -907,6 +1071,12 @@
             switchTab('code');
             showToast("Kode HTML berhasil dibuat!");
         });
+
+        // First Initializations on window load
+        window.onload = function () {
+            initTradingViewWidget(state.asset);
+            fetchLivePrice(state.asset);
+        }
 
     </script>
 </body>
