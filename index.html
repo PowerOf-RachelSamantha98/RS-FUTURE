@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Pipeline Generator & Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navbar -->
+    <header class="border-b border-slate-800 bg-slate-950 px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                <span class="material-icons-round text-2xl">insights</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">Perpetual Sniper Pipeline</h1>
+                <p class="text-xs text-slate-400">AI Code Generator & Live Simulator</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Ready to Deploy
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Sidebar: Controls -->
+        <aside class="w-80 border-r border-slate-800 bg-slate-950 p-6 flex flex-col justify-between overflow-y-auto shrink-0">
+            <div class="space-y-6">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Pipeline Parameters</h2>
+                    
+                    <!-- Parameter 1: Expanded Asset List -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">1. Target Asset Pair (Perpetual)</label>
+                        <select id="assetSelect" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="BTC/USDT">BTC/USDT (Bitcoin)</option>
+                            <option value="ETH/USDT">ETH/USDT (Ethereum)</option>
+                            <option value="SOL/USDT">SOL/USDT (Solana)</option>
+                            <option value="BNB/USDT">BNB/USDT (BNB Chain)</option>
+                            <option value="XRP/USDT">XRP/USDT (Ripple)</option>
+                            <option value="DOGE/USDT">DOGE/USDT (Dogecoin)</option>
+                            <option value="NEAR/USDT">NEAR/USDT (Near Protocol)</option>
+                        </select>
+                    </div>
+
+                    <!-- Parameter 2: Bias -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-slate-400 mb-1.5">2. High Timeframe Bias</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="biasBullish" class="py-2 px-3 rounded-lg text-sm font-medium border bg-indigo-600/20 border-indigo-500 text-indigo-300 flex items-center justify-center gap-1.5 transition-all">
+                                <span class="material-icons-round text-base text-emerald-400">trending_up</span> Bullish
+                            </button>
+                            <button id="biasBearish" class="py-2 px-3 rounded-lg text-sm font-medium border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center gap-1.5 transition-all hover:bg-slate-800">
+                                <span class="material-icons-round text-base text-rose-400">trending_down</span> Bearish
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Parameter 3: Risk to Reward -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-xs font-medium text-slate-400">3. Target Risk-to-Reward</label>
+                            <span id="rrValue" class="text-xs font-bold text-indigo-400 mono">1 : 6</span>
+                        </div>
+                        <input id="rrSlider" type="range" min="3" max="12" value="6" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Min (1:3)</span>
+                            <span>Max (1:12)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Start Analysis Button -->
+                <div class="border-t border-slate-800/80 pt-4">
+                    <button id="btnAnalyze" class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-semibold py-2.5 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">
+                        <span class="material-icons-round text-lg animate-spin" id="spinIcon" style="display:none;">sync</span>
+                        <span class="material-icons-round text-lg" id="staticAnalisisIcon">query_stats</span>
+                        <span id="textAnalise">Mulai Analisa Sniper</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4">
+                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Code Generator</h2>
+                <button id="btnGenerate" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-lg text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                    <span class="material-icons-round text-base">code</span> Generate HTML Code
+                </button>
+                <p class="text-[10px] text-slate-500 mt-1.5 text-center">Menghasilkan kode website single-file.</p>
+            </div>
+
+            <!-- Custom Notification Container -->
+            <div id="toast" class="opacity-0 translate-y-2 pointer-events-none transition-all duration-300 bg-slate-900 border border-indigo-500/30 text-slate-200 px-4 py-3 rounded-lg text-xs flex items-center gap-2 shadow-xl">
+                <span class="material-icons-round text-indigo-400">info</span>
+                <span id="toastMsg">Kode berhasil disalin!</span>
+            </div>
+        </aside>
+
+        <!-- Center/Right Content Area -->
+        <section class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+            
+            <!-- Tabs -->
+            <div class="border-b border-slate-800 bg-slate-950 px-6 flex items-center justify-between shrink-0">
+                <div class="flex space-x-6">
+                    <button id="tabSim" class="border-b-2 border-indigo-500 py-3 text-sm font-semibold text-white flex items-center gap-1.5 transition-all">
+                        <span class="material-icons-round text-base">play_circle</span> Interactive Simulator
+                    </button>
+                    <button id="tabCode" class="border-b-2 border-transparent py-3 text-sm font-medium text-slate-400 flex items-center gap-1.5 transition-all hover:text-slate-200">
+                        <span class="material-icons-round text-base">integration_instructions</span> Generated Code
+                    </button>
+                    <button id="tabGuide" class="border-b-2 border-transparent py-3 text-sm font-medium text-slate-400 flex items-center gap-1.5 transition-all hover:text-slate-200">
+                        <span class="material-icons-round text-base">cloud_done</span> GitHub Pages Deploy Guide
+                    </button>
+                </div>
+                <button id="btnCopy" class="hidden bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all">
+                    <span class="material-icons-round text-sm">content_copy</span> Salin Kode HTML
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="flex-1 overflow-hidden relative">
+                
+                <!-- 1. Simulator Content -->
+                <div id="contentSim" class="absolute inset-0 p-6 flex flex-col space-y-4">
+                    <!-- Live Stats HUD -->
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Target Asset</p>
+                            <p id="hudAsset" class="text-base font-bold text-slate-200 mono">BTC/USDT</p>
+                        </div>
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">High-Timeframe Bias</p>
+                            <p id="hudBias" class="text-base font-bold text-emerald-400 flex items-center gap-1">
+                                <span class="material-icons-round text-lg">trending_up</span> Bullish
+                            </p>
+                        </div>
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Required Win Rate</p>
+                            <p id="hudWinRate" class="text-base font-bold text-indigo-400 mono">14.2%</p>
+                        </div>
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+                            <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Pipeline Status</p>
+                            <p id="hudStatus" class="text-base font-bold text-slate-400">Waiting for trigger...</p>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Phase Tracker Bar -->
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+                            <span class="text-slate-400">Current Pipeline Step:</span>
+                        </div>
+                        <div class="flex space-x-4 font-medium">
+                            <span id="step1" class="text-indigo-400">1. SMC Check</span>
+                            <span class="text-slate-700">➔</span>
+                            <span id="step2" class="text-slate-500">2. POC Find</span>
+                            <span class="text-slate-700">➔</span>
+                            <span id="step3" class="text-slate-500">3. 1m MSS</span>
+                            <span class="text-slate-700">➔</span>
+                            <span id="step4" class="text-slate-500">4. CVD Trigger</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Workspace Area: Split with Analysis Report Card -->
+                    <div class="flex-1 flex gap-4 overflow-hidden">
+                        
+                        <!-- Canvas Box (Left Side) -->
+                        <div class="flex-1 bg-slate-950 rounded-2xl border border-slate-800/60 overflow-hidden relative">
+                            <canvas id="simCanvas" class="w-full h-full block"></canvas>
+                            <!-- Controls Overlay -->
+                            <div class="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3 backdrop-blur-sm">
+                                <button id="btnPlayPause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all">
+                                    <span class="material-icons-round text-lg">pause</span>
+                                </button>
+                                <span class="text-xs text-slate-400">Auto-cycle Simulation</span>
+                            </div>
+                        </div>
+
+                        <!-- Sniper Analysis Report Panel (Right Side) -->
+                        <div id="analysisPanel" class="w-80 bg-slate-950 rounded-2xl border border-slate-800 p-5 flex flex-col space-y-4 relative overflow-y-auto">
+                            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                                    <span class="material-icons-round text-indigo-400">query_stats</span> Hasil Analisa AI
+                                </h3>
+                                <span id="analysedLabel" class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-900 border border-slate-800 text-slate-500">No Data</span>
+                            </div>
+
+                            <!-- Initial Empty State -->
+                            <div id="analysisEmptyState" class="flex-1 flex flex-col items-center justify-center text-center p-4">
+                                <span class="material-icons-round text-slate-600 text-4xl mb-2">analytics</span>
+                                <p class="text-xs text-slate-400 font-semibold">Belum Ada Analisa</p>
+                                <p class="text-[10px] text-slate-500 mt-1">Silakan pilih koin dan klik tombol analisa di samping kiri.</p>
+                            </div>
+
+                            <!-- Scanning Screen overlay -->
+                            <div id="scanningScreen" class="hidden absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-6 z-10 rounded-2xl">
+                                <div class="w-12 h-12 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 animate-spin mb-4"></div>
+                                <p id="scanningText" class="text-xs text-indigo-400 font-semibold mono">Menganalisa Market...</p>
+                                <p class="text-[10px] text-slate-500 mt-1">Menghitung Volume Profile & POC Nodes...</p>
+                            </div>
+
+                            <!-- Analysis Result Screen (Populates on success) -->
+                            <div id="analysisResults" class="hidden space-y-4 flex-1 flex flex-col justify-between">
+                                <!-- Accuracy Ring Section -->
+                                <div class="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4 flex items-center gap-4">
+                                    <!-- Radial progress chart -->
+                                    <div class="relative w-16 h-16 shrink-0">
+                                        <svg class="w-full h-full transform -rotate-90">
+                                            <circle cx="32" cy="32" r="28" class="stroke-slate-800" stroke-width="6" fill="transparent"/>
+                                            <circle id="accuracyCircle" cx="32" cy="32" r="28" class="stroke-emerald-500 transition-all duration-1000 ease-out" stroke-width="6" fill="transparent" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+                                        </svg>
+                                        <span id="accuracyText" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-emerald-400 mono">--%</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-300">Akurasi Setup</h4>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">Probabilitas keberhasilan eksekusi di titik POC terpilih.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Sniper Levels -->
+                                <div class="space-y-2.5">
+                                    <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800/50 flex justify-between items-center text-xs">
+                                        <span class="text-slate-400">Sniper Entry:</span>
+                                        <span id="entryLevelText" class="font-bold text-amber-400 mono">--</span>
+                                    </div>
+                                    <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800/50 flex justify-between items-center text-xs">
+                                        <span class="text-slate-400">Stop Loss (SL):</span>
+                                        <span id="slLevelText" class="font-bold text-rose-400 mono">--</span>
+                                    </div>
+                                    <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800/50 flex justify-between items-center text-xs">
+                                        <span class="text-slate-400">Take Profit (TP):</span>
+                                        <span id="tpLevelText" class="font-bold text-emerald-400 mono">--</span>
+                                    </div>
+                                </div>
+
+                                <!-- Risk Info message -->
+                                <div class="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 text-[10.5px] text-slate-400 leading-relaxed">
+                                    <div class="flex items-center gap-1 text-indigo-400 font-bold mb-1">
+                                        <span class="material-icons-round text-xs">info</span> Informasi Struktur
+                                    </div>
+                                    Stop loss diletakkan di luar area FVG pada level mikro <span id="microReason">--</span> untuk menghindari stop hunt.
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 2. Code Content -->
+                <div id="contentCode" class="absolute inset-0 p-6 hidden flex flex-col">
+                    <div class="flex-1 bg-slate-950 rounded-2xl border border-slate-800 p-4 overflow-hidden flex flex-col">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                            <span class="text-xs text-slate-400 flex items-center gap-1"><span class="material-icons-round text-sm">code</span> HTML Single-file output</span>
+                            <span class="text-[10px] text-slate-500 mono">index.html</span>
+                        </div>
+                        <pre class="flex-1 overflow-auto text-slate-300 text-xs mono leading-relaxed bg-slate-900/40 p-4 rounded-xl border border-slate-800/40"><code id="codeBlock">Generating code...</code></pre>
+                    </div>
+                </div>
+
+                <!-- 3. Guide Content -->
+                <div id="contentGuide" class="absolute inset-0 p-6 hidden overflow-y-auto">
+                    <!-- GitHub Pages Deployment steps -->
+                    <div class="max-w-3xl mx-auto space-y-6">
+                        <div class="bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-6">
+                            <h3 class="text-base font-bold text-indigo-400 mb-2 flex items-center gap-1.5"><span class="material-icons-round">rocket_launch</span> Cara Deploy Sniper Pipeline ke Internet secara Gratis!</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">GitHub menyediakan layanan hosting web gratis bernama **GitHub Pages**. Anda bisa mempublikasikan kode HTML hasil generator di atas menjadi website aktif yang bisa diakses langsung lewat handphone atau browser Anda.</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Step 1 -->
+                            <div class="bg-slate-950 border border-slate-800/80 p-5 rounded-2xl flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold shrink-0 text-sm">1</div>
+                                <div class="space-y-2">
+                                    <h4 class="text-sm font-semibold text-slate-200">Buat Akun dan Repositori GitHub Baru</h4>
+                                    <p class="text-xs text-slate-400 leading-relaxed">Jika belum memiliki akun, daftar di <a href="https://github.com" target="_blank" class="text-indigo-400 hover:underline">github.com</a>. Klik tombol **New** di dashboard Anda untuk membuat repositori baru. Beri nama repositori Anda sesuka hati, atur ke **Public**, lalu klik **Create repository**.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="bg-slate-950 border border-slate-800/80 p-5 rounded-2xl flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold shrink-0 text-sm">2</div>
+                                <div class="space-y-2">
+                                    <h4 class="text-sm font-semibold text-slate-200">Unggah File index.html</h4>
+                                    <p class="text-xs text-slate-400 leading-relaxed">Di dalam tab **Generated Code** pada aplikasi ini, klik tombol **Salin Kode HTML**. Di halaman repositori GitHub baru Anda, klik tautan **creating a new file**, beri nama file tersebut dengan nama <code class="bg-slate-900 px-1 py-0.5 rounded text-indigo-300">index.html</code>, lalu *paste* seluruh kode yang disalin ke dalamnya. Scroll ke bawah dan klik **Commit changes**.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="bg-slate-950 border border-slate-800/80 p-5 rounded-2xl flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0 text-sm">3</div>
+                                <div class="space-y-2">
+                                    <h4 class="text-sm font-semibold text-slate-200">Aktifkan Fitur GitHub Pages</h4>
+                                    <p class="text-xs text-slate-400 leading-relaxed">Di repositori GitHub Anda, pergi ke menu **Settings** (ikon roda gigi di tab atas) -> **Pages** (pada sidebar sebelah kiri). Di bagian *Build and deployment*, ubah *Branch* dari **None** menjadi **main** (atau master), biarkan folder tetap <code class="bg-slate-900 px-1 py-0.5 rounded text-indigo-300">/ (root)</code>, lalu klik **Save**.</p>
+                                </div>
+                            </div>
+
+                            <!-- Step 4 -->
+                            <div class="bg-slate-950 border border-slate-800/80 p-5 rounded-2xl flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 text-sm">4</div>
+                                <div class="space-y-2">
+                                    <h4 class="text-sm font-semibold text-slate-200">Website Anda Selesai!</h4>
+                                    <p class="text-xs text-slate-400 leading-relaxed">Tunggu sekitar 1 hingga 2 menit. Refresh halaman Settings Pages Anda, GitHub akan menampilkan tautan hijau di bagian atas yang berbunyi: **"Your site is live at..."**. Klik tautan tersebut dan website trading pipeline kustom Anda sudah aktif mengudara secara publik!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Scripts & Simulation Logic -->
+    <script>
+        // MOCK BASE PRICE DATA FOR THE COINS
+        const basePrices = {
+            'BTC/USDT': 91420.0,
+            'ETH/USDT': 2542.50,
+            'SOL/USDT': 145.80,
+            'BNB/USDT': 585.30,
+            'XRP/USDT': 0.5840,
+            'DOGE/USDT': 0.1245,
+            'NEAR/USDT': 4.820
+        };
+
+        const state = {
+            asset: 'BTC/USDT',
+            bias: 'Bullish', // Bullish or Bearish
+            rr: 6,
+            isPlaying: true,
+            simTime: 0,
+            activeStage: 1,
+            priceHistory: [],
+            entryTriggered: false,
+            isAnalysing: false,
+            analysisTriggered: false
+        };
+
+        // UI Selectors
+        const assetSelect = document.getElementById('assetSelect');
+        const biasBullish = document.getElementById('biasBullish');
+        const biasBearish = document.getElementById('biasBearish');
+        const rrSlider = document.getElementById('rrSlider');
+        const rrValue = document.getElementById('rrValue');
+        
+        const hudAsset = document.getElementById('hudAsset');
+        const hudBias = document.getElementById('hudBias');
+        const hudWinRate = document.getElementById('hudWinRate');
+        const hudStatus = document.getElementById('hudStatus');
+
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
+
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const btnGenerate = document.getElementById('btnGenerate');
+        const btnCopy = document.getElementById('btnCopy');
+        
+        // Selector Buttons & Panels
+        const btnAnalyze = document.getElementById('btnAnalyze');
+        const spinIcon = document.getElementById('spinIcon');
+        const staticAnalisisIcon = document.getElementById('staticAnalisisIcon');
+        const textAnalise = document.getElementById('textAnalise');
+        const analysedLabel = document.getElementById('analysedLabel');
+        const analysisEmptyState = document.getElementById('analysisEmptyState');
+        const scanningScreen = document.getElementById('scanningScreen');
+        const scanningText = document.getElementById('scanningText');
+        const analysisResults = document.getElementById('analysisResults');
+        const accuracyCircle = document.getElementById('accuracyCircle');
+        const accuracyText = document.getElementById('accuracyText');
+        const entryLevelText = document.getElementById('entryLevelText');
+        const slLevelText = document.getElementById('slLevelText');
+        const tpLevelText = document.getElementById('tpLevelText');
+        const microReason = document.getElementById('microReason');
+
+        const tabSim = document.getElementById('tabSim');
+        const tabCode = document.getElementById('tabCode');
+        const tabGuide = document.getElementById('tabGuide');
+        const contentSim = document.getElementById('contentSim');
+        const contentCode = document.getElementById('contentCode');
+        const contentGuide = document.getElementById('contentGuide');
+        const codeBlock = document.getElementById('codeBlock');
+
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Setup Responsive Canvas
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        setTimeout(resizeCanvas, 100);
+
+        // UI Event Listeners
+        assetSelect.addEventListener('change', (e) => {
+            state.asset = e.target.value;
+            hudAsset.textContent = state.asset;
+            resetSimulation();
+            clearAnalysis();
+        });
+
+        biasBullish.addEventListener('click', () => {
+            state.bias = 'Bullish';
+            biasBullish.className = "py-2 px-3 rounded-lg text-sm font-medium border bg-indigo-600/20 border-indigo-500 text-indigo-300 flex items-center justify-center gap-1.5 transition-all";
+            biasBearish.className = "py-2 px-3 rounded-lg text-sm font-medium border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center gap-1.5 transition-all hover:bg-slate-800";
+            hudBias.className = "text-base font-bold text-emerald-400 flex items-center gap-1";
+            hudBias.innerHTML = `<span class="material-icons-round text-lg">trending_up</span> Bullish`;
+            resetSimulation();
+            clearAnalysis();
+        });
+
+        biasBearish.addEventListener('click', () => {
+            state.bias = 'Bearish';
+            biasBearish.className = "py-2 px-3 rounded-lg text-sm font-medium border bg-indigo-600/20 border-indigo-500 text-indigo-300 flex items-center justify-center gap-1.5 transition-all";
+            biasBullish.className = "py-2 px-3 rounded-lg text-sm font-medium border border-slate-800 bg-slate-900 text-slate-400 flex items-center justify-center gap-1.5 transition-all hover:bg-slate-800";
+            hudBias.className = "text-base font-bold text-rose-400 flex items-center gap-1";
+            hudBias.innerHTML = `<span class="material-icons-round text-lg">trending_down</span> Bearish`;
+            resetSimulation();
+            clearAnalysis();
+        });
+
+        rrSlider.addEventListener('input', (e) => {
+            state.rr = parseInt(e.target.value);
+            rrValue.textContent = `1 : ${state.rr}`;
+            const reqWin = (100 / (1 + state.rr)).toFixed(1);
+            hudWinRate.textContent = `${reqWin}%`;
+            if (state.analysisTriggered) {
+                runAnalysisProcess(true); // Quiet update of the levels
+            }
+        });
+
+        btnPlayPause.addEventListener('click', () => {
+            state.isPlaying = !state.isPlaying;
+            btnPlayPause.innerHTML = `<span class="material-icons-round text-lg">${state.isPlaying ? 'pause' : 'play_arrow'}</span>`;
+        });
+
+        // Tab Navigation
+        tabSim.addEventListener('click', () => switchTab('sim'));
+        tabCode.addEventListener('click', () => switchTab('code'));
+        tabGuide.addEventListener('click', () => switchTab('guide'));
+
+        function switchTab(target) {
+            tabSim.className = "border-b-2 " + (target === 'sim' ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200") + " py-3 text-sm font-medium flex items-center gap-1.5 transition-all";
+            tabCode.className = "border-b-2 " + (target === 'code' ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200") + " py-3 text-sm font-medium flex items-center gap-1.5 transition-all";
+            tabGuide.className = "border-b-2 " + (target === 'guide' ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200") + " py-3 text-sm font-medium flex items-center gap-1.5 transition-all";
+
+            contentSim.classList.toggle('hidden', target !== 'sim');
+            contentCode.classList.toggle('hidden', target !== 'code');
+            contentGuide.classList.toggle('hidden', target !== 'guide');
+            btnCopy.classList.toggle('hidden', target !== 'code');
+
+            if (target === 'code') {
+                generateCode();
+            }
+        }
+
+        // Reset & Clear helpers
+        function resetSimulation() {
+            state.simTime = 0;
+            state.priceHistory = [];
+            state.entryTriggered = false;
+        }
+
+        function clearAnalysis() {
+            state.analysisTriggered = false;
+            analysisEmptyState.classList.remove('hidden');
+            analysisResults.classList.add('hidden');
+            analysedLabel.textContent = "No Data";
+            analysedLabel.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-900 border border-slate-800 text-slate-500";
+        }
+
+        // Live Analysis Scanner Engine
+        btnAnalyze.addEventListener('click', () => {
+            if (state.isAnalysing) return;
+            state.isAnalysing = true;
+
+            // Trigger Animation Layouts
+            spinIcon.style.display = "inline-block";
+            staticAnalisisIcon.style.display = "none";
+            textAnalise.textContent = "Menganalisa...";
+            scanningScreen.classList.remove('hidden');
+            analysisEmptyState.classList.add('hidden');
+            analysisResults.classList.add('hidden');
+
+            // Progressive Scanning Status Labels
+            const statuses = [
+                "Scanning Order Books...",
+                "Searching HTF Fair Value Gaps...",
+                "Calculating Volume POC node...",
+                "Finding Micro MSS trigger..."
+            ];
+            
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < statuses.length) {
+                    scanningText.textContent = statuses[i];
+                    i++;
+                } else {
+                    clearInterval(timer);
+                    // Finish scanning
+                    state.isAnalysing = false;
+                    state.analysisTriggered = true;
+                    spinIcon.style.display = "none";
+                    staticAnalisisIcon.style.display = "inline-block";
+                    textAnalise.textContent = "Mulai Analisa Sniper";
+                    scanningScreen.classList.add('hidden');
+                    
+                    runAnalysisProcess(false);
+                    showToast(`Analisa Sniper untuk ${state.asset} berhasil dirumuskan!`);
+                }
+            }, 500);
+        });
+
+        // Calculation core
+        function runAnalysisProcess(quiet = false) {
+            const basePrice = basePrices[state.asset] || 100.0;
+            const decimalPlaces = basePrice < 10 ? 4 : (basePrice < 1000 ? 2 : 1);
+            
+            // Derive Entry inside Order Block
+            const entryVal = state.bias === 'Bullish' ? basePrice * 0.992 : basePrice * 1.008;
+            
+            // Stop Loss (SL) based on 0.4% distance
+            const slDistance = basePrice * 0.004;
+            const slVal = state.bias === 'Bullish' ? entryVal - slDistance : entryVal + slDistance;
+            
+            // Take Profit (TP) calculated purely from Risk-to-Reward (RR) slider
+            const riskAmt = Math.abs(entryVal - slVal);
+            const tpDistance = riskAmt * state.rr;
+            const tpVal = state.bias === 'Bullish' ? entryVal + tpDistance : entryVal - tpDistance;
+
+            // Mathematical Probability (Accuracy) model
+            let baseAccuracy = state.bias === 'Bullish' ? 82.5 : 79.1;
+            // Subtract accuracy for extreme target risk-rewards
+            const rrPenality = (state.rr - 3) * 4.2; 
+            const finalAccuracy = Math.min(94.5, Math.max(38.0, baseAccuracy - rrPenality)).toFixed(1);
+
+            // Populate Panel UI
+            entryLevelText.textContent = `${entryVal.toFixed(decimalPlaces)} USDT`;
+            slLevelText.textContent = `${slVal.toFixed(decimalPlaces)} USDT`;
+            tpLevelText.textContent = `${tpVal.toFixed(decimalPlaces)} USDT`;
+            accuracyText.textContent = `${finalAccuracy}%`;
+            microReason.textContent = `(${state.bias === 'Bullish' ? 'Swing Low' : 'Swing High'} 1m)`;
+
+            // SVG Radial Progress animate
+            const maxOffset = 175.9; // 2 * PI * r (r=28)
+            const offsetAmt = maxOffset - (finalAccuracy / 100) * maxOffset;
+            accuracyCircle.style.strokeDashoffset = offsetAmt;
+
+            // Style accuracy coloring
+            if (finalAccuracy >= 70) {
+                accuracyCircle.setAttribute('class', 'stroke-emerald-500 transition-all duration-1000 ease-out');
+                accuracyText.className = "absolute inset-0 flex items-center justify-center text-xs font-bold text-emerald-400 mono";
+            } else if (finalAccuracy >= 55) {
+                accuracyCircle.setAttribute('class', 'stroke-amber-500 transition-all duration-1000 ease-out');
+                accuracyText.className = "absolute inset-0 flex items-center justify-center text-xs font-bold text-amber-400 mono";
+            } else {
+                accuracyCircle.setAttribute('class', 'stroke-rose-500 transition-all duration-1000 ease-out');
+                accuracyText.className = "absolute inset-0 flex items-center justify-center text-xs font-bold text-rose-400 mono";
+            }
+
+            analysisResults.classList.remove('hidden');
+            
+            analysedLabel.textContent = "Analyzed";
+            analysedLabel.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400";
+
+            // If we just analyzed, trigger a beautiful cycle jump in simulation
+            if (!quiet) {
+                state.simTime = 8.5; // Jumps simulation loop exactly to the sniper execution visualization step
+            }
+        }
+
+        // Canvas Simulation Logic
+        function drawCandle(x, open, high, low, close, widthVal) {
+            const isBull = close >= open;
+            ctx.strokeStyle = isBull ? '#10b981' : '#f43f5e';
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.lineWidth = 1.5;
+
+            // Wick
+            ctx.beginPath();
+            ctx.moveTo(x, high);
+            ctx.lineTo(x, low);
+            ctx.stroke();
+
+            // Body
+            const bh = Math.max(2, Math.abs(open - close));
+            const by = Math.min(open, close);
+            ctx.fillRect(x - widthVal / 2, by, widthVal, bh);
+        }
+
+        let lastTime = 0;
+        function updateSimulation(time) {
+            if (!lastTime) lastTime = time;
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            if (state.isPlaying) {
+                state.simTime += dt;
+            }
+
+            // Draw Background and Grid
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid Lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let i = 40; i < w; i += 40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+            }
+            for (let i = 40; i < h; i += 40) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            }
+
+            const padding = 50;
+            const chartW = w - padding * 2;
+            const chartH = h - padding * 2;
+
+            // Set up zones based on Bias
+            const obY = state.bias === 'Bullish' ? h * 0.65 : h * 0.35;
+            const obH = 35;
+            const obTop = obY - obH / 2;
+            const obBottom = obY + obH / 2;
+
+            // 1. Draw Order Block / FVG Zone
+            ctx.fillStyle = state.bias === 'Bullish' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+            ctx.fillRect(padding, obTop, chartW, obH);
+            ctx.strokeStyle = state.bias === 'Bullish' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(padding, obTop, chartW, obH);
+            ctx.setLineDash([]);
+
+            // Label FVG
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 10px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText("HTF ORDER BLOCK / FVG", padding + 10, obTop - 6);
+
+            // 2. Draw Volume Profile POC Line
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, obY);
+            ctx.lineTo(w - padding, obY);
+            ctx.stroke();
+            ctx.fillStyle = '#f59e0b';
+            ctx.textAlign = 'right';
+            ctx.fillText("Volume Profile POC", w - padding - 10, obY - 6);
+
+            // Simulation cycle progress (0.0 to 1.0) over 12 seconds
+            const cycleProgress = (state.simTime % 12) / 12;
+
+            // Map Cycle Progress to Pipeline Steps
+            if (cycleProgress < 0.25) {
+                state.activeStage = 1;
+                hudStatus.textContent = "SMC Structure Check...";
+                hudStatus.className = "text-base font-bold text-indigo-400";
+                setStepActive(step1);
+            } else if (cycleProgress < 0.5) {
+                state.activeStage = 2;
+                hudStatus.textContent = "Locating POC Node...";
+                hudStatus.className = "text-base font-bold text-amber-400";
+                setStepActive(step2);
+            } else if (cycleProgress < 0.75) {
+                state.activeStage = 3;
+                hudStatus.textContent = "Waiting Micro 1m MSS...";
+                hudStatus.className = "text-base font-bold text-cyan-400";
+                setStepActive(step3);
+            } else {
+                state.activeStage = 4;
+                hudStatus.textContent = "CVD Sniper Triggered!";
+                hudStatus.className = "text-base font-bold text-emerald-400";
+                setStepActive(step4);
+            }
+
+            // Draw simulated candles
+            const totalCandles = 50;
+            const stepX = chartW / totalCandles;
+
+            for (let i = 0; i < totalCandles * cycleProgress; i++) {
+                const x = padding + i * stepX;
+                let targetY = 0;
+
+                // Create a standard path structure
+                if (i < 18) { // Phase 1: Approaching the Block
+                    targetY = state.bias === 'Bullish' ? 
+                        (obTop - 70) + (i / 18) * 70 : 
+                        (obBottom + 70) - (i / 18) * 70;
+                } else if (i < 32) { // Phase 2: Consolidation inside Block
+                    const localI = i - 18;
+                    const wave = Math.sin(localI * 1.3) * 8;
+                    targetY = obY + wave;
+                } else { // Phase 3: Explosive breakout/expansion
+                    state.entryTriggered = true;
+                    const localI = i - 32;
+                    const directionMultiplier = state.bias === 'Bullish' ? -1 : 1;
+                    targetY = obY + (localI * 7) * directionMultiplier;
+                }
+
+                // Inject a little noise so candles look organic
+                const randOffset = Math.sin(i * 0.7) * 4;
+                const open = targetY + randOffset;
+                const close = targetY - randOffset + (state.bias === 'Bullish' ? -1.5 : 1.5);
+                const high = Math.min(open, close) - Math.abs(randOffset) - 2;
+                const low = Math.max(open, close) + Math.abs(randOffset) + 2;
+
+                drawCandle(x, open, high, low, close, stepX * 0.65);
+
+                // Draw Sniper Target Box Visual on Trigger Node (i == 32)
+                if (i === 32) {
+                    const riskH = obH * 0.9;
+                    const rewardH = riskH * state.rr;
+                    const remW = chartW - (x - padding);
+
+                    ctx.save();
+                    if (state.bias === 'Bullish') {
+                        // LONG (Red box down for SL, Green box up for TP)
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.1)'; // Red SL
+                        ctx.fillRect(x, obY, remW, riskH);
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.1)'; // Green TP
+                        ctx.fillRect(x, obY - rewardH, remW, rewardH);
+
+                        ctx.strokeStyle = '#10b981';
+                        ctx.strokeRect(x, obY - rewardH, remW, rewardH);
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.strokeRect(x, obY, remW, riskH);
+                    } else {
+                        // SHORT (Green box down for TP, Red box up for SL)
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.1)'; // Green TP
+                        ctx.fillRect(x, obY, remW, rewardH);
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.1)'; // Red SL
+                        ctx.fillRect(x, obY - riskH, remW, riskH);
+
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.strokeRect(x, obY - riskH, remW, riskH);
+                        ctx.strokeStyle = '#10b981';
+                        ctx.strokeRect(x, obY, remW, rewardH);
+                    }
+
+                    // Draw SNIPER ENTRY marker
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(x, obY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Text Annotation
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 9px Inter';
+                    ctx.fillText("SNIPER ENTRY (1m MSS)", x + 10, obY - 2);
+
+                    ctx.restore();
+                }
+            }
+
+            requestAnimationFrame(updateSimulation);
+        }
+
+        function setStepActive(activeElement) {
+            [step1, step2, step3, step4].forEach(el => {
+                if (el === activeElement) {
+                    el.className = "text-indigo-400 font-bold border-b border-indigo-400 pb-0.5";
+                } else {
+                    el.className = "text-slate-500 font-medium";
+                }
+            });
+        }
+
+        requestAnimationFrame(updateSimulation);
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = msg;
+            toast.className = "absolute bottom-6 left-6 opacity-100 translate-y-0 transition-all duration-300 bg-slate-900 border border-indigo-500/30 text-slate-200 px-4 py-3 rounded-lg text-xs flex items-center gap-2 shadow-xl z-50";
+            
+            setTimeout(() => {
+                toast.className = "absolute bottom-6 left-6 opacity-0 translate-y-2 pointer-events-none transition-all duration-300 bg-slate-900 border border-indigo-500/30 text-slate-200 px-4 py-3 rounded-lg text-xs flex items-center gap-2 shadow-xl z-50";
+            }, 2500);
+        }
+
+        // Code Generation Engine
+        function generateCode() {
+            const asset = state.asset;
+            const bias = state.bias;
+            const rr = state.rr;
+            const winRate = (100 / (1 + rr)).toFixed(1);
+
+            // Escaped the closing script tags to avoid breaking the browser's script parser block
+            const generatedHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sniper Trading Pipeline: ${asset}</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #090d16; color: #e2e8f0; }
+    </style>
+</head>
+<body class="p-6 md:p-12 flex flex-col items-center justify-center min-h-screen">
+    <div class="max-w-4xl w-full bg-slate-950 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 gap-4">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span> ${asset} Sniper Pipeline
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">SMC / Volume Profile POC / Micro Market Shift Simulator</p>
+            </div>
+            <div class="flex gap-4">
+                <div class="bg-slate-900 px-4 py-2 rounded-xl text-center">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">HTF BIAS</p>
+                    <p class="text-sm font-bold ${bias === 'Bullish' ? 'text-emerald-400' : 'text-rose-400'}">${bias}</p>
+                </div>
+                <div class="bg-slate-900 px-4 py-2 rounded-xl text-center">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">TARGET RR</p>
+                    <p class="text-sm font-bold text-indigo-400">1 : ${rr}</p>
+                </div>
+                <div class="bg-slate-900 px-4 py-2 rounded-xl text-center">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase">REQ. WIN RATE</p>
+                    <p class="text-sm font-bold text-slate-200">${winRate}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulated Interactive Chart -->
+        <div class="h-80 w-full bg-slate-900/40 rounded-2xl border border-slate-800/80 relative overflow-hidden flex items-center justify-center">
+            <div class="text-center space-y-2 p-6">
+                <div class="w-16 h-16 bg-indigo-600/10 rounded-full border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400 mb-3 animate-pulse">
+                    🚀
+                </div>
+                <h3 class="text-sm font-bold text-slate-200">Pipeline Terpasang secara Live!</h3>
+                <p class="text-xs text-slate-400 max-w-md">Indikator otomatis ini mendeteksi Fair Value Gap pada grafik utama Anda, lalu menunggu transisi volume POC sebelum mengeksekusi sniper order.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-medium border-t border-slate-800 pt-6">
+            <div class="p-3 bg-indigo-950/20 rounded-xl border border-indigo-500/10 text-indigo-300">1. SMC Check (HTF)</div>
+            <div class="p-3 bg-slate-900 rounded-xl text-slate-400">2. POC Node Match</div>
+            <div class="p-3 bg-slate-900 rounded-xl text-slate-400">3. 1m Market Shift</div>
+            <div class="p-3 bg-slate-900 rounded-xl text-slate-400">4. CVD Sniper Entry</div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+            codeBlock.textContent = generatedHtml;
+        }
+
+        // Copy Clipboard Handler
+        btnCopy.addEventListener('click', () => {
+            const textarea = document.createElement('textarea');
+            textarea.value = codeBlock.textContent;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast("Kode HTML berhasil disalin ke Clipboard!");
+        });
+
+        // Trigger manual/auto generation on sidebar button click
+        btnGenerate.addEventListener('click', () => {
+            switchTab('code');
+            showToast("Kode HTML berhasil dibuat!");
+        });
+
+    </script>
+</body>
+</html>
